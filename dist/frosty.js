@@ -1,32 +1,41 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createStore = createStore;
+const nanoid_1 = require("nanoid");
 class FrostyStore {
+    storeId;
     state;
-    subscriptions = [];
+    subscriptions;
     constructor(initialState) {
+        this.storeId = (0, nanoid_1.nanoid)();
+        this.subscriptions = new Map();
         this.state = initialState;
         Object.freeze(this.state);
     }
     update(updatedState) {
-        this.state = {
-            ...this.state,
-            ...updatedState
-        };
+        this.state = { ...this.state, ...updatedState };
         Object.freeze(this.state);
-        this.subscriptions.forEach(fn => {
-            fn(this.data);
-        });
+        this.subscriptions.forEach(cb => cb(this.data));
+        return this;
     }
     get data() {
-        return Object.freeze(structuredClone(this.state));
+        return structuredClone(this.state);
     }
     getFromKey(key) {
-        const p = { [key]: this.state[key] };
-        return Object.freeze(p);
+        return structuredClone(this.state[key]);
     }
-    subscribe(fn) {
-        this.subscriptions.push(fn);
+    subscribe(cb) {
+        const id = (0, nanoid_1.nanoid)(31);
+        this.subscriptions.set(id, cb);
+        const susbcription = Object.freeze({ id, origin: this.storeId });
+        return () => susbcription;
+    }
+    unsubscribe(subscriptionFn) {
+        const metadata = subscriptionFn();
+        if (this.storeId !== metadata.origin) {
+            return false;
+        }
+        return this.subscriptions.delete(metadata.id);
     }
 }
 function createStore(initialState) {

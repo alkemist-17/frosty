@@ -1,0 +1,27 @@
+{
+  "name": "frosty",
+  "version": "1.0.0",
+  "description": "A library for global state management.",
+  "main": "./dist/test.js",
+  "scripts": {
+    "build": "tsc",
+    "test": "test",
+    "start": "tsc && node ."
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alkemist-17/frosty.git"
+  },
+  "keywords": [
+    "state management"
+  ],
+  "author": "Eduardo Velazco",
+  "license": "EPL-2.0",
+  "bugs": {
+    "url": "https://github.com/alkemist-17/frosty/issues"
+  },
+  "homepage": "https://github.com/alkemist-17/frosty#readme",
+  "dependencies": {
+    "nanoid": "^5.1.6"
+  }
+}
