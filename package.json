@@ -5,7 +5,7 @@
   "main": "./dist/test.js",
   "scripts": {
     "build": "tsc",
-    "test": "test",
+    "test": "tsc && node .",
     "start": "tsc && node ."
   },
   "repository": {

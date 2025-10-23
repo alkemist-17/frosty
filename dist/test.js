@@ -69,15 +69,19 @@ const s3 = store.subscribe((state) => {
 });
 setTimeout(() => {
     store.update({ isData: false });
-    store.unsubscribe(s1);
-    console.log('Waiting for the second timeout to complete ...');
-}, 3500);
-console.log('Waiting for the first timeout to complete ...');
+    console.assert(store.unsubscribe(s1));
+    console.log('\nWaiting for the second timeout to complete ...');
+}, 4500);
+console.log('\nWaiting for the first timeout to complete ...');
 // To unsubscribe just call the unsubscribe method this the subscription as argument.
 setTimeout(() => {
     store.update({ isData: true });
-    store.unsubscribe(s2);
-    store.unsubscribe(s3);
+    console.assert(store.unsubscribe(s2));
+    console.assert(store.unsubscribe(s3));
+    // Check unsubscriptions
+    console.assert(!store.unsubscribe(s1));
+    console.assert(!store.unsubscribe(s2));
+    console.assert(!store.unsubscribe(s3));
     console.log('\n---> Ok\n');
-}, 5500);
+}, 7500);
 //# sourceMappingURL=test.js.map
