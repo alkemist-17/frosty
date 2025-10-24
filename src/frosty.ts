@@ -36,10 +36,7 @@ class FrostyStore<T> {
 
     public unsubscribe(subscriptionFn: () => Readonly<{ origin: string, id: string }>): boolean {
         const metadata = subscriptionFn();
-        if (this.storeId !== metadata.origin) {
-            return false;
-        }
-        return this.subscriptions.delete(metadata.id);
+        return this.storeId === metadata.origin && this.subscriptions.delete(metadata.id);
     }
 }
 
