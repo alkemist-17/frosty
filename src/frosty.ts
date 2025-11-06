@@ -1,9 +1,22 @@
 import { nanoid } from 'nanoid';
 
+class Subscription {
+    constructor(
+        private readonly _id: string, 
+        private readonly _origin: string
+    ) {}
+    public get id(): string {
+        return this._id;
+    }
+    public get origin(): string {
+        return this._origin;
+    }
+}
+
 class FrostyStore<T> {
-    private storeId: string;
+    private readonly storeId: string;
     private state: T;
-    private subscriptions: Map<string, (state: T) => void>;
+    private readonly subscriptions: Map<string, (state: T) => void>;
 
     constructor(initialState: T) {
         this.storeId = nanoid();
@@ -27,14 +40,14 @@ class FrostyStore<T> {
         return structuredClone(this.state[key]);
     }
 
-    public subscribe(cb: (state: T) => void): () => Readonly<{ origin: string, id: string }> {
+    public subscribe(cb: (state: T) => void): () => Readonly<Subscription> {
         const id = nanoid(31);
         this.subscriptions.set(id, cb);
-        const susbcription = Object.freeze({ id, origin: this.storeId });
+        const susbcription = Object.freeze(new Subscription(id, this.storeId));
         return () => susbcription;
     }
 
-    public unsubscribe(subscriptionFn: () => Readonly<{ origin: string, id: string }>): boolean {
+    public unsubscribe(subscriptionFn: () => Readonly<Subscription>): boolean {
         const metadata = subscriptionFn();
         return this.storeId === metadata.origin && this.subscriptions.delete(metadata.id);
     }

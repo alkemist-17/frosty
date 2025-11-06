@@ -2,6 +2,20 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createStore = createStore;
 const nanoid_1 = require("nanoid");
+class Subscription {
+    _id;
+    _origin;
+    constructor(_id, _origin) {
+        this._id = _id;
+        this._origin = _origin;
+    }
+    get id() {
+        return this._id;
+    }
+    get origin() {
+        return this._origin;
+    }
+}
 class FrostyStore {
     storeId;
     state;
@@ -27,15 +41,12 @@ class FrostyStore {
     subscribe(cb) {
         const id = (0, nanoid_1.nanoid)(31);
         this.subscriptions.set(id, cb);
-        const susbcription = Object.freeze({ id, origin: this.storeId });
+        const susbcription = Object.freeze(new Subscription(id, this.storeId));
         return () => susbcription;
     }
     unsubscribe(subscriptionFn) {
         const metadata = subscriptionFn();
-        if (this.storeId !== metadata.origin) {
-            return false;
-        }
-        return this.subscriptions.delete(metadata.id);
+        return this.storeId === metadata.origin && this.subscriptions.delete(metadata.id);
     }
 }
 function createStore(initialState) {

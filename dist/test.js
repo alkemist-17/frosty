@@ -82,6 +82,6 @@ setTimeout(() => {
     console.assert(!store.unsubscribe(s1));
     console.assert(!store.unsubscribe(s2));
     console.assert(!store.unsubscribe(s3));
-    console.log('\n---> Ok\n');
+    console.log('\n---> All tests were Ok\n');
 }, 7500);
 //# sourceMappingURL=test.js.map
