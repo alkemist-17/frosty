@@ -2,11 +2,13 @@
   "name": "frosty",
   "version": "1.0.0",
   "description": "A lightweight, immutable, and type-safe global state management library for TypeScript.",
-  "main": "./dist/main.js",
+  "main": "./dist/frosty.test.js",
+  "types": "./dist/frosty.test.d.ts",
   "scripts": {
     "build": "tsc",
-    "test": "tsc && node .",
-    "start": "tsc && node ."
+    "test": "tsx ./src/frosty.test.ts",
+    "start": "tsx ./src/frosty.test.ts",
+    "dev": "tsc && node ."
   },
   "repository": {
     "type": "git",
@@ -30,6 +32,11 @@
     "nanoid": "^6.0.1"
   },
   "devDependencies": {
-    "@types/node": "^26.6.2"
+    "@types/node": "^20.11.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.0"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true
   }
 }
