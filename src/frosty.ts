@@ -10,7 +10,6 @@ export type DeepPartial<T> = T extends object ? { [P in keyof T]?: DeepPartial<T
 // Interface Subscription
 export interface Subscription {
   readonly id: string;
-  readonly origin: string;
   unsubscribe: () => void;
 }
 
@@ -25,7 +24,8 @@ class FrostyStore<T extends object> {
         this.storeId = nanoid();
         this.subscriptions = new Map<string, (state: T) => void>();
         validateSerializable(initialState);
-        this.state = this.deepFreeze(deepMerge({} as T, initialState));
+        const clonedInitialState = structuredClone(initialState);
+        this.state = this.deepFreeze(deepMerge({} as T, clonedInitialState));
     }
 
     private deepFreeze<U extends object>(obj: U): Readonly<U> {
@@ -41,7 +41,8 @@ class FrostyStore<T extends object> {
 
     public update(updatedState: DeepPartial<T>): FrostyStore<T> {
         validateSerializable(updatedState);
-        this.state = this.deepFreeze(deepMerge(this.state, updatedState as object));
+        const clonedUpdate = structuredClone(updatedState);
+        this.state = this.deepFreeze(deepMerge(this.state, clonedUpdate as object));
         this.subscriptions.forEach(cb => cb(this.state));
         return this;
     }
@@ -59,16 +60,10 @@ class FrostyStore<T extends object> {
         this.subscriptions.set(id, cb);
         return {
             id,
-            origin: this.storeId,
             unsubscribe: () => {
                 this.subscriptions.delete(id);
             }
-        } as Subscription;
-    }
-
-    public unsubscribe(subscriptionFn: () => Readonly<Subscription>): boolean {
-        const metadata = subscriptionFn();
-        return this.storeId === metadata.origin && this.subscriptions.delete(metadata.id);
+        };
     }
 }
 
@@ -85,6 +80,10 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
 /**
  * Deeply merges a source object into a target object, returning a new object.
  * Arrays and non-plain objects (Dates, Maps, etc.) are replaced by reference.
+ *
+ * NOTE: callers of deepMerge are responsible for ensuring `source` does not
+ * contain references the caller still needs to mutate — see update() and the
+ * constructor, which clone `source` before it ever reaches this function.
  */
 function deepMerge<T extends object, U extends object>(target: T, source: U): T & U {
   // Create a shallow copy of the target to avoid mutation
@@ -116,6 +115,16 @@ function deepMerge<T extends object, U extends object>(target: T, source: U): T 
 
 
 function validateSerializable(obj: unknown, path: string = "root"): void {
+  // Functions are not serializable and previously slipped through silently,
+  // since `typeof fn !== "object"` short-circuited the check below before it
+  // ever ran. Reject them explicitly.
+  if (typeof obj === "function") {
+    throw new Error(
+      `FrostyStore only supports plain, serializable objects. Found a function at path '${path}'. ` +
+      `Functions cannot be stored, frozen, or cloned safely.`
+    );
+  }
+
   if (obj === null || typeof obj !== "object") return;
 
   // Block built-in mutable objects
@@ -142,4 +151,3 @@ function validateSerializable(obj: unknown, path: string = "root"): void {
 export function createStore<T extends object>(initialState: T): FrostyStore<T> {
     return new FrostyStore<T>(initialState);
 }
-

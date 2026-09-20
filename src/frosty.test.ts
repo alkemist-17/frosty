@@ -195,13 +195,13 @@ test("Attack 3: Mutation of non-plain objects (Date/Set) throws", () => {
   }, "FrostyStore only supports plain objects");
 });
 
-test("Attack 4: Mutating the payload AFTER passing it to update doesn't affect store", () => {
+test("Attack 4: Mutating the object payload AFTER passing it to update doesn't affect store", () => {
   const store = createStore<AppState>(generateHeavyState(5));
   const payload = { settings: { theme: "dark" as const, notifications: { email: false, sms: false, push: false } } };
   
   store.update(payload);
   
-  // 3. The "mean user" bypasses TS to mutate the original payload at runtime.
+  // The "mean user" bypasses TS to mutate the original payload at runtime.
   // We use `as any` here intentionally to simulate a JS consumer or a deliberate 
   // attempt to corrupt shared references, which is exactly what we are defending against.
   (payload.settings as any).theme = "hacked";
@@ -212,6 +212,30 @@ test("Attack 4: Mutating the payload AFTER passing it to update doesn't affect s
   assertEqual(store.data.settings.notifications.email, false);
 });
 
+test("Attack 4b: Mutating an array payload AFTER passing it to update doesn't throw and doesn't affect store", () => {
+  const store = createStore<AppState>(generateHeavyState(5));
+  const newUsers = [generateUser(99)];
+
+  store.update({ users: newUsers });
+
+  // Regression test: deepMerge used to assign arrays into the store's frozen
+  // state BY REFERENCE, so deepFreeze would then freeze the caller's own
+  // array. Mutating it afterward would throw a TypeError. It must not.
+  let threwOnCallerArray = false;
+  try {
+    newUsers.push(generateUser(100));
+  } catch {
+    threwOnCallerArray = true;
+  }
+  if (threwOnCallerArray) {
+    throw new Error("Caller's own array was frozen as a side effect of update() — reference leaked into the store");
+  }
+
+  // The caller's mutation must not have leaked into the store either.
+  assertEqual(store.data.users.length, 1);
+  assertEqual(store.data.users[0]!.id, 99);
+});
+
 test("Attack 5: Mutating objects returned from getFromKey throws", () => {
   const store = createStore<AppState>(generateHeavyState(5));
   const settings = store.getFromKey("settings");
@@ -219,6 +243,18 @@ test("Attack 5: Mutating objects returned from getFromKey throws", () => {
   expectThrow(() => {
     (settings as any).theme = "hacked";
   }, "Failed to block mutation of getFromKey result");
+});
+
+test("Attack 6: Functions in the payload are rejected", () => {
+  const store = createStore<AppState>(generateHeavyState(5));
+
+  expectThrow(() => {
+    store.update({ onClick: () => {} } as any);
+  }, "Failed to reject a function in the update payload");
+
+  expectThrow(() => {
+    createStore({ onClick: () => {} } as any);
+  }, "Failed to reject a function in the initial state");
 });
 
 // ============================================================================
