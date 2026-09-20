@@ -1,6 +1,6 @@
 {
   "name": "@alkemist-17/frosty",
-  "version": "1.0.0",
+  "version": "1.0.0-rc.1",
   "description": "A lightweight, immutable, and type-safe global state management library for TypeScript.",
   "type": "module",
   "main": "./dist/frosty.js",
