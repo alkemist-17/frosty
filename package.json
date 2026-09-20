@@ -2,13 +2,18 @@
   "name": "frosty",
   "version": "1.0.0",
   "description": "A lightweight, immutable, and type-safe global state management library for TypeScript.",
-  "main": "./dist/frosty.test.js",
-  "types": "./dist/frosty.test.d.ts",
+  "type": "module",
+  "main": "./dist/frosty.js",
+  "types": "./dist/frosty.d.ts",
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": "^18 || >=20"
+  },
   "scripts": {
     "build": "tsc",
-    "test": "tsx ./src/frosty.test.ts",
-    "start": "tsx ./src/frosty.test.ts",
-    "dev": "tsc && node ."
+    "test": "tsx ./src/frosty.test.ts"
   },
   "repository": {
     "type": "git",
@@ -22,7 +27,7 @@
     "state management",
     "typescript"
   ],
-  "author": "Alkemist-17",
+  "author": "Eduardo Velazco",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/alkemist-17/frosty/issues"
