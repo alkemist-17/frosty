@@ -1,4 +1,4 @@
-import { createStore, DeepPartial } from "./frosty";
+import { createStore, DeepPartial } from "./frosty.js";
 
 // ============================================================================
 // 1. TEST INFRASTRUCTURE
