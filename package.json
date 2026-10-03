@@ -1,6 +1,6 @@
 {
   "name": "@alkemist-17/frosty",
-  "version": "1.0.0-rc.2",
+  "version": "1.0.0",
   "description": "Frosty is a lightweight, immutable and type-safe Typescript Store for state management.",
   "type": "module",
   "main": "./dist/src/frosty.js",
