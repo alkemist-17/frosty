@@ -1,10 +1,10 @@
 {
   "name": "@alkemist-17/frosty",
-  "version": "1.0.0-rc.1",
-  "description": "A lightweight, immutable, and type-safe global state management library for TypeScript.",
+  "version": "1.0.0-rc.2",
+  "description": "Frosty is a lightweight, immutable and type-safe Typescript Store for state management.",
   "type": "module",
-  "main": "./dist/frosty.js",
-  "types": "./dist/frosty.d.ts",
+  "main": "./dist/src/frosty.js",
+  "types": "./dist/src/frosty.d.ts",
   "files": [
     "dist"
   ],
@@ -13,7 +13,8 @@
   },
   "scripts": {
     "build": "tsc",
-    "test": "tsx ./src/frosty.test.ts"
+    "test": "vitest --no-watch",
+    "express": "tsc && node ./dist/src/workbench.js"
   },
   "repository": {
     "type": "git",
@@ -23,25 +24,19 @@
     "immutable",
     "lightweight",
     "type-safe",
-    "global state management",
     "state management",
-    "typescript"
+    "typescript",
+    "global store"
   ],
-  "author": "Eduardo Velazco",
+  "author": "Eduardo Velazco Romero",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/alkemist-17/frosty/issues"
   },
   "homepage": "https://github.com/alkemist-17/frosty#readme",
-  "dependencies": {
-    "nanoid": "^6.0.1"
-  },
   "devDependencies": {
-    "@types/node": "^20.11.0",
-    "tsx": "^4.7.0",
-    "typescript": "^6.0.3"
-  },
-  "allowScripts": {
-    "esbuild@0.28.2": true
+    "@types/node": "^26.6.4",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.3"
   }
 }

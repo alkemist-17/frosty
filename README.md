@@ -1,195 +1,125 @@
-# Frosty 🧊
+# ❄️ Frosty
 
-**A lightweight, immutable, and type-safe global state management library for TypeScript.**
+**Frosty** is a lightweight, immutable, and type-safe TypeScript store for managing application state. Designed with predictability and serialization in mind, Frosty ensures your state remains pure, leak-free, and ready for persistence at all times.
 
-`v1.0.0` · [MIT licensed](./LICENSE)
+## 📦 Installation
 
-Frosty provides a fast, predictable state container with zero boilerplate. It combines the simplicity of a basic pub/sub store with strict immutability and deep-merging, while keeping your bundle size tiny.
+```
 
-## Features
+   npm install @alkemist-17/frosty
 
-- **Zero-Cost Reads**: `store.data` and `store.getFromKey()` return direct references to the frozen internal state — no cloning, no serialization, on every read.
-- **Deep Partial Updates**: Update deeply nested properties without wiping out sibling data.
-- **Immutability**: State is deeply frozen. Attempting to mutate it throws a `TypeError`, catching bugs at the exact moment they happen.
-- **Serializable by Design**: Enforces plain, JSON-compatible data structures — no `Date`, `Map`, `Set`, class instances, or functions — to guarantee 100% predictability and easy persistence.
-- **Structural Sharing**: Branches of the state tree you don't touch in an update are reused, not recreated.
-- **TypeScript First**: Built from the ground up with strict typing and `DeepPartial` support.
+```
 
-## Requirements
-
-Frosty relies on [`structuredClone`](https://developer.mozilla.org/en-US/docs/Web/API/structuredClone) internally to guarantee immutability without leaking references back to your own code. This means:
-
-- **Node.js 18+** (or Node 17 with the global available — 18 LTS is the safe baseline).
-- Any reasonably modern browser (all evergreen browsers support it; no IE support).
-
-On unsupported runtimes, Frosty will throw `ReferenceError: structuredClone is not defined` rather than failing silently.
-
-## Installation
-
-> Install directly from the repo:
-> ```bash
-> npm install github:alkemist-17/frosty
-> ```
-
----
-
-## Quick Start
+## 🚀 Starter Example
 
 ```typescript
 import { createStore } from 'frosty';
 
-// 1. Define your state shape
-interface AppState {
-  user: { name: string; preferences: { theme: 'light' | 'dark' } } | null;
-  notifications: string[];
+// 1. Define your state shape using type keyword
+type AppState = {
+  user: { name: string; age: number } | null;
+  theme: 'light' | 'dark';
+  loginAttempts: number;
 }
 
-// 2. Create the store
+// 2. Create the store with an initial state
 const store = createStore<AppState>({
   user: null,
-  notifications: []
+  theme: 'light',
+  loginAttempts: 0,
 });
 
-// 3. Read state (Zero-cost reference return)
-console.log(store.data.user); // null
-
-// 4. Update state (Deep partial merge)
-store.update({
-  user: {
-    name: 'Alice',
-    preferences: { theme: 'dark' } // You don't need to provide the whole object!
-  }
+// 3. Subscribe to state changes
+const unsubscribe = store.subscribe((state) => {
+  console.log('State updated:', state.theme);
 });
 
-// 5. Subscribe to changes
-const subscription = store.subscribe((state) => {
-  console.log('Theme changed to:', state.user?.preferences.theme);
-});
+// 4. Update the state immutably
+store.update((state) => ({
+  ...state,
+  theme: 'dark',
+  loginAttempts: state.loginAttempts + 1,
+}));
 
-store.update({ user: { preferences: { theme: 'light' } } });
-// Logs: "Theme changed to: light"
+// 5. Query specific slices of state
+const currentTheme = store.query((state) => state.theme);
+console.log('Current theme:', currentTheme); // Output: 'dark'
 
-// 6. Clean up
-subscription.unsubscribe();
+// 6. Clean up subscriptions when no longer needed
+unsubscribe();
+
 ```
 
-## API Reference
+## 📖 API Reference
+
+Frosty exposes a minimal, focused API to keep your state management predictable and easy to reason about.
 
 ```typescript
-createStore<T>(initialState: T): FrostyStore<T>
+createStore<T>(initialState: T): Store<T>
 ```
 
-Creates a new store instance. `initialState` is validated (see [Serializable State Only](#2-serializable-state-only)), deep-cloned, and deeply frozen — so mutating the object you passed in *after* calling `createStore` has no effect on the store, and vice versa.
-
-
-```typescript
-store.data: Readonly<T>
-```
-
-Returns the current state.
-
-*Note: This returns a direct reference to the deeply frozen internal state — reads are O(1), with no cloning cost. Attempting to mutate the returned value will throw a **TypeError**.*
+Initializes a new Frosty store. The `initialState` must be a plain JavaScript object. During initialization, the state is deeply sanitized (e.g., `undefined` is mapped to `null`) and recursively frozen to guarantee immutability.
 
 
 ```typescript
-store.getFromKey<Key extends keyof T>(key: Key): T[Key]
+store.update(updater: (state: T) => T): void
 ```
 
-Retrieves a specific root-level property from the state. Useful for extracting a slice of state without reading the entire tree. The returned value is part of the same frozen state tree as `store.data`, so it is also immutable at runtime — mutating it throws, even though the type signature doesn't wrap it in `Readonly<>`.
+Updates the store's state. The `updater` function receives the current state and must return a new state object. Frosty will automatically deep-clone, sanitize, and freeze the returned state, preventing any accidental reference leaks or mutations. If the updater throws an error, the store's state remains unchanged.
 
 
 ```typescript
-store.update(partialState: DeepPartial<T>): FrostyStore<T>
+store.query<R>(selector: (state: T) => R): R
 ```
 
-Merges the provided partial state into the current state.
-
-- Supports deeply nested updates without requiring you to reconstruct parent objects.
-- Arrays are replaced, not merged (see below).
-- The `partialState` argument is validated and deep-cloned before merging, so mutating the object you passed in *after* calling `update()` never affects the store.
-- Returns the store instance, allowing for chained updates.
-- Throws if `partialState` contains a non-serializable value (see [Serializable State Only](#2-serializable-state-only)).
+Synchronously derives and returns a value from the current state. This is the recommended way to read specific slices of data without exposing the entire state tree to the caller.
 
 
 ```typescript
-store.subscribe(callback: (state: T) => void): Subscription
+store.subscribe(listener: (state: T) => void): () => void
 ```
 
-Registers a listener that fires synchronously with the new state whenever `update()` is called. Returns a `Subscription` object.
-
-> ⚠️ **Subscriber errors are not isolated.** If a callback throws, iteration over the remaining subscribers stops immediately — later-registered subscribers will not be notified for that update, and the exception propagates out of the `update()` call that triggered it. Wrap your own callback logic in `try/catch` if a single failure in your handler shouldn't take down the rest of your app's update cycle.
-
+Registers a callback function to be invoked whenever the store's state is successfully updated. Returns an `unsubscribe` function to remove the listener and prevent memory leaks. *Note: If a listener throws an error, it is caught and logged, ensuring other subscribers continue to function normally*.
 
 ```typescript
-subscription.unsubscribe(): void
+store.getState(): T
 ```
 
-Removes the listener from the store. Always call this when your component or module unmounts to prevent memory leaks.
-
-### Exported types
-
-```typescript
-import { createStore, DeepPartial, Subscription } from 'frosty';
-```
-
-- `DeepPartial<T>` — the type accepted by `update()`; every property at every depth is optional. Useful if you're building your own helper functions around partial state.
-- `Subscription` — the object returned by `subscribe()`, with a readonly `id` and an `unsubscribe()` method. Useful for typing a variable or class field that holds a subscription.
+Returns the current, deeply frozen state of the store. Use this sparingly; `store.query()` is generally preferred for reading data.
 
 
-## Frosty Design Principles
+## ⚖️ Key Advantages & Disadvantages
 
-To guarantee predictability and performance, Frosty enforces a few strict rules. Understanding these will help you get the most out of the library.
-
-
-### 1. Immutability
-
-Frosty deeply freezes the state tree. If you try to mutate the state directly, JavaScript will throw a **TypeError** in strict mode.
-
-```typescript
-const state = store.data;
-state.user.name = "Bob"; // ❌ TypeError: Cannot assign to read only property 'name'
-```
-
-*Important: Always use `store.update()` to change state.*
+Understanding the architectural choices of Frosty will help you determine if it is the right fit for your project.
 
 
-### 2. Serializable State Only
+### ✅ Key Advantages
 
-To prevent subtle bugs caused by JavaScript's internal object slots — and to keep state trivially persistable and DevTools-friendly — Frosty rejects non-serializable values: **`Date`, `Map`, `Set`, `RegExp`, custom class instances, and functions.**
+1. **Immutability**: Every update recursively recreates arrays and objects, and applies `Object.freeze()` at every level. Accidental mutations are caught immediately at runtime.
 
-```typescript
-createStore({ createdAt: new Date() });     // ❌ Throws Error
-store.update({ onClick: () => {} });        // ❌ Throws Error
-```
+2. **Serializability**: Frosty actively rejects non-serializable types (e.g., `Date`, `Map`, `Set`, `Function`, `Symbol`). This prevents reference leaks to external systems and makes the state instantly ready for persistence (e.g., `localStorage`, IndexedDB, or server sync).
 
-**The Frosty Way**: Store dates as ISO strings or timestamps, sets as arrays, and so on — instantiate richer types (like `Date` or `Set`) only in your UI/view layer, from the plain data Frosty gives you. This guarantees your state is always 100% JSON-compatible.
+3. **First-Class TypeScript Support**: Fully typed generics ensure end-to-end type safety for initial state, updates, queries, and subscriptions without requiring complex boilerplate.
 
+4. **Zero Dependencies**: Frosty is lightweight, adding negligible bundle size to your application.
 
-### 3. Arrays are Replaced, Not Merged
-
-When you update an array, the old array is completely replaced by the new one — array elements are not merged index-by-index.
-
-```typescript
-store.update({ notifications: ['New Alert'] });
-// The old notifications array is gone, replaced entirely by ['New Alert']
-```
+5. **Resilient Architecture**: Updater errors do not corrupt the existing state, and subscriber errors do not break the notification chain for other listeners.
 
 
-## Performance
+### ⚠️ Key Disadvantages
 
-Frosty is designed around one asymmetry: **reads should be free, writes should cost proportionally to what you're writing.**
+1. **Performance Overhead on Large Trees**: Because Frosty deeply clones and freezes the *entire* state tree on every update, it is not optimized for massive, deeply nested state objects that update at high frequency (e.g., 60fps animation data). For such cases, consider fine-grained reactive stores (like Zustand or Jotai).
 
-- **Reads are zero-cost.** `store.data` and `getFromKey()` return a direct reference into the frozen state tree — no cloning, no traversal cost beyond a plain property access, regardless of how large the rest of the state tree is.
-- **Writes cost proportionally to the size of the payload you pass to `update()`, not the size of the whole state tree.** `update()` deep-clones its `partialState` argument (this is what guarantees mutating your own object afterward can't corrupt the store — see [Immutability](#1-immutability)). A small nested update stays sub-millisecond even against a large state tree, because untouched branches are structurally shared, not copied. A large payload — for example, replacing a 10,000-item array in one `update()` call — pays a cloning cost proportional to that array's size, since the whole payload has to be cloned before it can be safely frozen.
+2. **Strict Type Restrictions**: You cannot store class instances, Dates, Maps, Sets, or functions in the store. While this is a deliberate design choice for serializability, it requires developers to adapt their data modeling (e.g., storing ISO date strings instead of `Date` objects). Also, your data schema must be declared using `type` instead of just `interface`.
 
-We don't publish fixed millisecond numbers here, because they vary by hardware, Node version, and — more importantly — by the exact shape of your state and payloads. The project includes a benchmark suite (`frosty.test.ts`) that exercises a 10,000-user nested state tree; run it yourself for numbers representative of your environment:
+3. **No Built-in Middleware**: Unlike Redux, Frosty does not have a middleware system for logging, devtools, or async thunks out of the box. Async logic should be handled externally, calling `store.update()` when resolved.
 
-```bash
-npm test
-```
+4. **No Automatic Memoization**: The `query` method runs the selector function on every call. For expensive derivations on large datasets, you should implement your own memoization (e.g., using reselect or lodash.memoize).
 
-As a rough point of reference from one run on a modern machine: initializing a 10,000-user tree and deep-freezing it takes tens of milliseconds; a single nested-property update on that same tree stays well under a millisecond thanks to structural sharing; replacing the entire 10,000-item array in one `update()` call takes tens of milliseconds, dominated by the clone. If your workload leans heavily on replacing large arrays on every update, that's the cost curve to be aware of — small, targeted updates stay cheap regardless of total state size.
 
----
+### 📜 License
+Frosty is open-source software licensed under the MIT License.
 
-Need some new feature? Just drop a line.
+
+### 🤝 Contributing
+Contributions, issues, and feature requests are welcome! Please ensure you run the test suite (`npm run test`) and adhere to the existing TypeScript guidelines before submitting a pull request.
