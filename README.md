@@ -110,7 +110,7 @@ Understanding the architectural choices of Frosty will help you determine if it 
 
 1. **Performance Overhead on Large Trees**: Because Frosty deeply clones and freezes the *entire* state tree on every update, it is not optimized for massive, deeply nested state objects that update at high frequency (e.g., 60fps animation data). For such cases, consider fine-grained reactive stores (like Zustand or Jotai).
 
-2. **Strict Type Restrictions**: You cannot store class instances, Dates, Maps, Sets, or functions in the store. While this is a deliberate design choice for serializability, it requires developers to adapt their data modeling (e.g., storing ISO date strings instead of `Date` objects). Also, your data schema must be declared using `type` instead of just `interface`.
+2. **Strict Type Restrictions**: You cannot store class instances, Dates, Maps, Sets, or functions in the store. While this is a deliberate design choice for serializability, it requires developers to adapt their data modeling (e.g., storing ISO date strings instead of `Date` objects). Also, your data schema must be declared using `type` to use the the createStore function this way: `createStore<AppState>(...)` or you can declare your data schema using the keyword `interface`, in such case, you must use the create function this way: `createStore(...)` without indicating the parametric data type to the function.
 
 3. **No Built-in Middleware**: Unlike Redux, Frosty does not have a middleware system for logging, devtools, or async thunks out of the box. Async logic should be handled externally, calling `store.update()` when resolved.
 
